@@ -5,29 +5,70 @@
 </head>
 <body>
 	<div id="app" class="container">
-		<h3>
-			Menampilkan Data Produk
-		</h3>
-		<table class="table table-bordered">
-			<tr>
-				<th>ID</th>
-				<th>Nama </th>
-				<th>Jumlah</th>
-				<th>Kategori</th>
-				<th>harga Beli</th>
-				<th>harga jual</th>
-				<th>Aksi</th>
-			</tr>
-			<tr v-for="item in items">
-				<td>{{ item.id }}</td>
-				<td>{{ item.nama }}</td>
-				<td>{{ item.qty }}</td>
-				<td>{{ item.kategori.nama_kategori }}</td>
-				<td>{{ item.harga_beli }}</td>
-				<td>{{ item.harga_jual }}</td>
-				<td></td>
-			</tr>
-		</table>
+		<div v-if="form == true">
+			<h3 style="margin-top: 20px">Produk</h3>
+			<div>
+				<div class="form-group row">
+					<label>Nama</label>
+					<input type="text" v-model="nama" class="form-control">
+				</div>
+				<div class="form-group row">
+					<label>QTY</label>
+					<input type="text" v-model="qty" class="form-control">
+				</div>
+				<div class="form-group row">
+					<label>Harga beli</label>
+					<input type="text" v-model="harga_beli" class="form-control">
+				</div>
+				<div class="form-group row">
+					<label>Harga Jual</label>
+					<input type="text" v-model="harga_jual" class="form-control">
+				</div>
+				<div class="form-group">
+					<button class="btn btn-default" v-on:click="simpan()">
+						Simpan
+					</button>
+					<button class="btn btn-danger" v-on:click="batal()">
+						Batal
+					</button>
+				</div>
+			</div>
+		</div>
+		<div v-if="form == false">
+			<h3>
+				Menampilkan Data Produk
+			</h3>
+			<button class="btn btn-primary mb-2" v-on:click="form = !form">
+				Tambah
+			</button>
+			<table class="table table-bordered">
+				<tr>
+					<th>ID</th>
+					<th>Nama </th>
+					<th>Jumlah</th>
+					<th>Kategori</th>
+					<th>Harga Beli</th>
+					<th>Harga jual</th>
+					<th class="text-center">Aksi</th>
+				</tr>
+				<tr v-for="item in items">
+					<td>{{ item.id }}</td>
+					<td>{{ item.nama }}</td>
+					<td>{{ item.qty }}</td>
+					<td>{{ item.kategori.nama_kategori }}</td>
+					<td>{{ item.harga_beli }}</td>
+					<td>{{ item.harga_jual }}</td>
+					<td class="text-center">
+						<button class="btn btn-primary btn-sm" v-on:click="update(item.id)">
+							Edit
+						</button>
+						<button class="btn btn-danger btn-sm" v-on:click="hapus(item.id)">
+							Hapus
+						</button>
+					</td>
+				</tr>
+			</table>
+		</div>
 	</div>
 
 	<!-- <script src="js/app.js"></script> -->
@@ -36,20 +77,122 @@
 	<script>
 		var example1 = new Vue({
 			el: '#app',
+			//data adalah model (state) dari vue.js
 			data: {
-				items: []
+				items: [],
+				id : '',
+				nama : '',
+				qty: '',
+				harga_beli: '',
+				harga_jual: '',
+				form: false,
+				edit: false,
 			},
 			mounted(){
-				//get data dari resourse get-produks
-				var self = this;
-				axios.get('http://localhost:8000/api/get-produks')
-				.then(function(response) {
-					console.log(response.data);
-					self.items = response.data;
-				})
-				.catch(function(error) {
-					console.log(error)
-				})
+				this.fetchProduks();
+			},
+			methods: {
+				fetchProduks(){
+					//get data dari resourse get-produks
+					var self = this;
+					axios.get('http://localhost:8000/api/get-produks')
+					.then(function(response) {
+						self.items = response.data;
+					})
+					.catch(function(error) {
+						console.log(error)
+					})
+				},
+				simpan() {
+					var self = this
+					if (!self.edit) {
+						//post data (menggunakan method post resource)
+						axios.post("http://localhost:8000/api/post-produk",{
+							nama: this.nama,
+							qty: this.qty,
+							harga_jual: this.harga_jual,
+							harga_beli: this.harga_beli,
+							id_kategori: 1,
+						})
+						.then(function (response) {
+							console.log(response);
+							if (response.data.status == true) {
+								self.batal()
+							}else{
+								alert("data gagal disimpan")
+							}
+						})
+						.catch(function(error) {
+							console.log(error)
+						})
+					}else{
+						//edit data (menggunakan method put resource)
+						var id = this.id
+						axios.put("http://localhost:8000/api/update-produk/"+id,{
+							nama: this.nama,
+							qty: this.qty,
+							harga_jual: this.harga_jual,
+							harga_beli: this.harga_beli,
+							id_kategori: 1,
+						})
+						.then(function (response) {
+							console.log(response);
+							if (response.data.status == true) {
+								self.batal()
+							}else{
+								alert("data gagal disimpan")
+							}
+						})
+						.catch(function(error) {
+							console.log(error)
+						})
+					}
+				},
+				update(id){
+					var self = this
+					axios.get("http://localhost:8000/api/get-produk/"+id)
+					.then(function (response) {
+						console.log(response.data)
+						self.form = true;
+						self.edit = true;
+						self.id = response.data.id;
+						self.nama = response.data.nama;
+						self.qty = response.data.qty;
+						self.harga_beli = response.data.harga_beli;
+						self.harga_jual = response.data.harga_jual;
+					})
+					.catch(function(error) {
+						console.log(error)
+					})
+				},
+				hapus(id){
+					//method untuk menghapus data
+					var cek = confirm("Yakin akan hapus ?");
+					var self = this;
+					if (cek) {
+						axios.delete("http://localhost:8000/api/delete-produk/"+id)
+						.then(function (response) {
+							console.log(response.data)
+							self.form = false;
+							self.edit = false;
+							self.batal();
+						})
+						.catch(function(error) {
+							console.log(error)
+						})
+					}
+				},
+				batal(){
+					//fuction untuk reset model serta get data ulang
+					this.form = false;
+					this.edit = false;
+					this.id = '';
+					this.nama = '';
+					this.qty = '';
+					this.harga_beli = '';
+					this.harga_jual = '';
+					this.fetchProduks();
+				}
 			}
 		})
 	</script>
